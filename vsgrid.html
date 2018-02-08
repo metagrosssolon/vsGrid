@@ -142,12 +142,17 @@
             margin: 0;
         }
 
-        .vsGrid #vs-pagination > .vs-page {
+        .vsGrid #vs-pagination .vs-page {
             float: left;
             padding: 10px;
         }
 
-        .vsGrid #vs-pagination > .vs-page:hover {
+        .vsGrid #vs-pagination .vs-page.active {
+            background-color: #00A2D8;
+            color : #ffffff;
+        }
+
+        .vsGrid #vs-pagination .vs-page:hover {
             background-color: #263238; 
             color : #ffffff;
         }
