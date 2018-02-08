@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+
+    <title>vsGrid</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous"> -->
+    <style>
+        .vsGrid {
+            /*border : 1pt solid #000;*/
+            width : 400px; /* option width */
+            height : 200px; /* option height */
+        }
+        
+        table th
+        ,table td {
+            /*border : 1pt solid #000;*/
+        } 
+        
+        thead {
+            width: 383px; /* dynamic from (vsGrid width - scrollbar)*/
+        }
+        
+        tbody {
+            width: 400px; /* dynamic from (vsGrid width) */
+            height: 164.95px; /* dynamic from (vsGrid height - thead height) */
+        }
+        
+        thead th
+        ,tbody td {
+            min-width : 150px; /* can be a parameter in every column */
+        }
+            
+        /* -------------------------------------- vsGrid -------------------------------------- */
+
+        .vsGrid *
+        , ::after
+        , ::before {
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+            font-size: 10pt;
+        }
+
+        .vsGrid {
+            position : relative; 
+            /* overflow : hidden; */
+        }
+
+        .vsGrid table {
+            background-color: #263238;
+            border-collapse: collapse;
+        }
+
+        .vsGrid thead {
+            background-color: #263238;
+            color: #ffffff;
+            overflow: hidden;
+            display: block;
+        }
+
+        .vsGrid tbody {
+            overflow: auto;
+            display: block;
+        }
+
+        .vsGrid tbody tr:nth-child(odd) {
+            background-color: #FFFEFF; 
+        }
+
+        .vsGrid tbody tr:nth-child(even) {
+            background-color: #F0EFFF; 
+        }
+
+        .vsGrid th
+        ,.vsGrid td {
+            padding : 12px 2.5px;
+            word-wrap: break-word;
+			overflow-wrap: break-word; /* incase word-wrap is not supported */
+			word-break: break-all;
+            border : 1pt solid; /* tentative */
+        }
+
+        .vsGrid th {
+            font-weight: 500;   
+        }
+
+        .vsGrid thead th:hover {
+            background-color: #00A2D8; 
+        }
+
+        .vsGrid tbody tr:hover {
+            background-color: #DFDEEC;
+        }
+
+        /* ----------------- PANEL TOP ---------------- */
+
+        .vsGrid .vs-search-box {
+            float: right;
+        }
+
+        .vsGrid .vs-search-box label {
+            position: relative;
+            display: inline-block;
+            vertical-align: middle;
+            width: 20px;
+            height: 15pt;
+        }
+
+        .vsGrid .vs-search-box svg {
+            height: 15pt;
+        }
+
+        .vsGrid #vs-search {
+            border: none;
+            outline: none;
+            width: 200px;
+        }
+
+        /* ----------------- PANEL BOTTOM ---------------- */
+
+        .vs-pagelimit-box {
+            float: left;
+            padding: 10px 0;
+        }
+
+        .vs-pagelimit-box #vs-pagelimit {
+            cursor: pointer;
+            border: none;
+            outline: none;
+            margin: 0 10px;
+        }
+
+        .vsGrid .vs-pagination-box {
+            float: right;
+        }
+
+        .vsGrid #vs-pagination {
+            list-style: none;
+            margin: 0;
+        }
+
+        .vsGrid #vs-pagination > .vs-page {
+            float: left;
+            padding: 10px;
+        }
+
+        .vsGrid #vs-pagination > .vs-page:hover {
+            background-color: #263238; 
+            color : #ffffff;
+        }
+    </style>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>-->
+</head>
+<body>
+<!--<div id="demoGrid" class="vsGrid">
+    <div id="vs-panel-t">
+        <div class="vs-search-box">
+            <label for="vs-search">
+                <svg viewBox="0 0 24 24" height="100%" width="100%" preserveAspectRatio="xMidYMid meet">
+                    <g><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></g>
+                </svg>
+            </label>
+            <input id="vs-search" name="vs-search" type="text" placeholder="Search for" />
+        </div>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Header 1</th>
+                <th>Header 2</th>
+                <th>Header 3</th>
+                <th>Header 4</th>
+                <th>Header 5</th>
+                <th>Header 6</th>
+                <th>Header 7</th>
+                <th>Header 8</th>
+                <th>Header 9</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Data A1</td>
+                <td>Data A2</td>
+                <td>Data A3</td>
+                <td>Data A4</td>
+                <td>Data A5</td>
+                <td>Data A6</td>
+                <td>Data A7</td>
+                <td>Data A8</td>
+                <td>Data A9</td>
+            </tr>
+            <tr>
+                <td>Data B1</td>
+                <td>Data B2</td>
+                <td>Data B3</td>
+                <td>Data B4</td>
+                <td>Data B5</td>
+                <td>Data B6</td>
+                <td>Data B7</td>
+                <td>Data B8</td>
+                <td>Data B9</td>
+            </tr>
+            <tr>
+                <td>Data C1</td>
+                <td>Data C2</td>
+                <td>Data C3</td>
+                <td>Data C4</td>
+                <td>Data C5</td>
+                <td>Data C6</td>
+                <td>Data C7</td>
+                <td>Data C8</td>
+                <td>Data C9</td>
+            </tr>
+            <tr>
+                <td>Data D1</td>
+                <td>Data D2</td>
+                <td>Data D3</td>
+                <td>Data D4</td>
+                <td>Data D5</td>
+                <td>Data D6</td>
+                <td>Data D7</td>
+                <td>Data D8</td>
+                <td>Data D9</td>
+            </tr>
+            <tr>
+                <td>Data E1</td>
+                <td>Data E2</td>
+                <td>Data E3</td>
+                <td>Data E4</td>
+                <td>Data E5</td>
+                <td>Data e6</td>
+                <td>Data e7</td>
+                <td>Data e8</td>
+                <td>Data e9</td>
+            </tr>
+            <tr>
+                <td>Data A1</td>
+                <td>Data A2</td>
+                <td>Data A3</td>
+                <td>Data A4</td>
+                <td>Data A5</td>
+                <td>Data A6</td>
+                <td>Data A7</td>
+                <td>Data A8</td>
+                <td>Data A9</td>
+            </tr>
+            <tr>
+                <td>Data B1</td>
+                <td>Data B2</td>
+                <td>Data B3</td>
+                <td>Data B4</td>
+                <td>Data B5</td>
+                <td>Data B6</td>
+                <td>Data B7</td>
+                <td>Data B8</td>
+                <td>Data B9</td>
+            </tr>
+        </tbody>
+    </table>
+    <div id="vs-panel-b">
+        <div class="vs-pagelimit-box">
+            Showing 1 to 10 of 100 rows
+            <select name="vs-pagelimit" id="vs-pagelimit">
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+            rows per page
+        </div>
+        <div class="vs-pagination-box">
+            <ul id="vs-pagination" name="vs-pagination">
+                <li class="vs-page">Prev</li>
+                <li class="vs-page">1</li>
+                <li class="vs-page">2</li>
+                <li class="vs-page">3</li>
+                <li class="vs-page">...</li>
+                <li class="vs-page">100</li>
+                <li class="vs-page">Next</li>
+            </ul>
+        </div>
+    </div>
+</div>-->
+
+<div id="grid" class="vsGrid"></div>
+
+<script src="vsgrid.js"></script>
+<script src="MOCK_DATA.js"></script>
+<script>
+    $(document).ready(function() {
+        //rows
+        //header 
+        //data to be displayed
+        //style -- will be appended to css
+
+        $("#grid").vsGrid({
+            data : gData
+            ,rows : [
+                        { column : "id"           , width : 50  , style : "text-align : center;"}
+                        ,{ column : "first_name"  , width : 130 , style : "text-align : left;"}
+                        ,{ column : "last_name"   , width : 130 , style : "text-align : left;"}
+                        ,{ column : "email"       , width : 150 , style : "text-align : left;"}
+                        ,{ column : "gender"      , width : 100 , style : "text-align : center;"}
+                        ,{ column : "job_title"   , width : 150 , style : "text-align : left;"}
+                        ,{ column : "department"  , width : 100 , style : "text-align : left;"}
+                    ]
+        });
+        
+        
+        /* ------------------------------------ vsGrid --------------------------------------------  */
+        /*$(".vsGrid tbody").on("scroll", function(){
+            var scrollLeft = $(this).scrollLeft();
+            console.log(scrollLeft);
+            $(".vsGrid thead").scrollLeft(scrollLeft);
+        });*/
+    }); 
+</script>
+</body>
+</html>
