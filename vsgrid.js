@@ -65,94 +65,33 @@ $.fn.vsGrid.createTable = function(o) {
                         +   '</div>';
 	
 	// Create #vsGrid-cus-style style tag
-	$('head').append('<style id="vsGrid-cus-style"></style>');
-    var $style = $("#vsGrid-cus-style");
+	var $style = $("#vsGrid-cus-style");
+	if ( ! $style.length) { $('head').append('<style id="vsGrid-cus-style"></style>'); $style = $("#vsGrid-cus-style"); }
    
-	var $thead = $self.find("thead");
-	var $tbody = $self.find("tbody");
-	var $pageLimitBox = $self.find(".vs-pagelimit-box");
-	var $pageLimit;
-	var $pagination = $self.find("#vs-pagination");
-	
-	var pLimit_s = "";
-	var pagination_s = "";
 	var style_s = "";
 	
 	// Create pagelimit
-	pLimit_s = '<select name="vs-pagelimit" id="vs-pagelimit">';
-	for (let i = 0; i < pLimit.length; i++) {
-		var _pl = pLimit[i];
-		pLimit_s += '<option value="' + _pl + '">' + _pl + '</option>';
-	}
-    pLimit_s += '</select>';
-	$pageLimitBox.html(pLimit_s);
-	$pageLimit = $pageLimitBox.find("#vs-pagelimit");
-
-	$pageLimit.off("change");
-	$pageLimit.on("change", function() {
-		// Create pagination
-		var pages = dataLength / this.value;
-		pagination_s = '<li id="vs-page-prev" class="vs-page except">Prev</li>';
-		if (pages <= 5) {
-			pagination_s += '<li class="vs-page active">1</li>';
-			for (let i = 2; i <= pages; i++) {
-				pagination_s += '<li class="vs-page">' + i + '</li>';
-			}
-		} else {
-			pagination_s += '<li class="vs-page active">1</li><li class="vs-page">2</li><li class="vs-page">3</li><li class="vs-page except">...</li><li class="vs-page">' + pages + '</li>';
-		}
-		pagination_s += '<li id="vs-page-next" class="vs-page except">Next</li>';
-		$pagination.html(pagination_s);
+	$.fn.vsGrid.createPageLimit({
+		pLimit : pLimit
 	});
-	
+
 	// Create pagination
 	var pages = dataLength / $pageLimit.val();
-	pagination_s = '<li id="vs-page-prev" class="vs-page except">Prev</li>';
-	if (pages <= 5) {
-		pagination_s += '<li class="vs-page active">1</li>';
-		for (let i = 2; i <= pages; i++) {
-			pagination_s += '<li class="vs-page">' + i + '</li>';
-		}
-	} else {
-		pagination_s += '<li class="vs-page active">1</li><li class="vs-page">2</li><li class="vs-page">3</li><li class="vs-page except">...</li><li class="vs-page">' + pages + '</li>';
-	}
-	pagination_s += '<li id="vs-page-next" class="vs-page except">Next</li>';
-	$pagination.html(pagination_s);
-
-	// On click event
-	$pagination.off("click", ".vs-page:not(.except)");
-	$pagination.on("click", ".vs-page:not(.except)", function() {
-		$pagination.find(".active").removeClass("active");
-		$(this).addClass("active");
-
-		// Update tbody display
-		$tbody.html($.fn.vsGrid.createTBody({
-			data : data
-			,rows : rows
-			,limit : $pageLimit.val()
-			,page : parseInt($(this).text())
-		}));
-	});
+	$.fn.vsGrid.createPagination({ pages : pages });
+	
 
 	// Create vsGrid thead
-	$thead.html(
-		$.fn.vsGrid.createTHead({
-			rows : rows
-		})
-	);
+	$.fn.vsGrid.createTHead({
+		rows : rows
+	});
 	
 	// Create vsGrid tbody from createTBody()
-	$tbody.html(
-		$.fn.vsGrid.createTBody({
-			data : data
-			,rows : rows
-			,limit : $pageLimit.val()
-			,page : 1 // default 1
-		})
-	).on("scroll", function(){
-	    // Add scroll event
-    	$thead.scrollLeft($(this).scrollLeft());
-    });
+	$.fn.vsGrid.createTBody({
+		data : data
+		,rows : rows
+		,limit : $pageLimit.val()
+		,page : 1 // default 1
+	});
 
     for (let i = 0; i < rowsLength; i++) {
     	//Create per column styles
@@ -180,6 +119,7 @@ $.fn.vsGrid.createTable = function(o) {
 };
 
 $.fn.vsGrid.createTHead = function(o) {
+	var $thead = $self.find("thead");
 	var rows = o.rows;
 	var rowsLength = rows.length;
 	var thead_s = '<tr>';
@@ -190,10 +130,12 @@ $.fn.vsGrid.createTHead = function(o) {
 	}
 	thead_s 	+=	'</tr>';
 
-	return thead_s;
+	$thead.html(thead_s);
 }
 
 $.fn.vsGrid.createTBody = function(o) {
+	var $thead = $self.find("thead");
+	var $tbody = $self.find("tbody");
 	var data = o.data;
 	var rows = o.rows;
 	var limit = o.limit;
@@ -232,11 +174,63 @@ $.fn.vsGrid.createTBody = function(o) {
 			tbody_s += '</tr>';
 		}
 	}
-	
 
-	return tbody_s;
+	$tbody.html(tbody_s).on("scroll", function(){
+	    // Add scroll event
+    	$thead.scrollLeft($(this).scrollLeft());
+    });
 }
 
-$.fn.vsGrid.createPage = function(o) {
+$.fn.vsGrid.createPageLimit = function(o) {
+	var $pageLimitBox = $self.find(".vs-pagelimit-box");
+	var $pageLimit = $pageLimitBox.find("#vs-pagelimit");
+	var pLimit = o.pLimit;
+	var pLimit_s = '<select name="vs-pagelimit" id="vs-pagelimit">';
 
+	for (let i = 0; i < pLimit.length; i++) {
+		var _pl = pLimit[i];
+		pLimit_s += '<option value="' + _pl + '">' + _pl + '</option>';
+	}
+    pLimit_s += '</select>';
+
+    $pageLimitBox.html(pLimit_s);
+
+	$pageLimit.off("change");
+	$pageLimit.on("change", function() {
+		// Create pagination
+		var pages = dataLength / this.value;
+		$.fn.vsGrid.createPagination({ pages : pages });
+	});
+}
+
+$.fn.vsGrid.createPagination = function(o) {
+	var $pagination = $self.find("#vs-pagination");
+	var pages = o.pages;
+	var pagination_s = '<li id="vs-page-prev" class="vs-page except">Prev</li>';
+	if (pages <= 5) {
+		pagination_s += '<li class="vs-page active">1</li>';
+		for (let i = 2; i <= pages; i++) {
+			pagination_s += '<li class="vs-page">' + i + '</li>';
+		}
+	} else {
+		pagination_s += '<li class="vs-page active">1</li><li class="vs-page">2</li><li class="vs-page">3</li><li class="vs-page except">...</li><li class="vs-page">' + pages + '</li>';
+	}
+	pagination_s += '<li id="vs-page-next" class="vs-page except">Next</li>';
+
+	$pagination.html(pagination_s);
+
+	// On click event
+	$pagination.off("click", ".vs-page:not(.except)");
+	$pagination.on("click", ".vs-page:not(.except)", function() {
+		$pagination.find(".active").removeClass("active");
+		$(this).addClass("active");
+
+		// Update tbody display
+		$.fn.vsGrid.createTBody({
+			data : data
+			,rows : rows
+			,limit : $pageLimit.val()
+			,page : parseInt($(this).text())
+		});
+	});
 }
