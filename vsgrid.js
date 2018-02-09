@@ -28,6 +28,11 @@ $.fn.vsGrid = function(options) {
 		var id 			= $self.attr('id');
 		var rowsLength 	= rows.length;
 		var dataLength 	= data.length;
+
+		// Initialized dynamic values
+		var curPage 	= 1; 
+		var curLimit 	= Math.floor(pageLimit[0]);
+		var pages 		= dataLength / curLimit;
 		
 		// Declared DOM object
 		var $style;
@@ -37,12 +42,9 @@ $.fn.vsGrid = function(options) {
 		var $pageLimit;
 		var $pagination;
 		
-		// Declared dynamic values
-		var pages;
-		
 		// vsGrid Functions
 		$.fn.vsGrid.createTable = function(o) {
-			var style_s = "";
+			var _style_s = "";
 			
 			// Create vsGrid DOM structure
 			self.innerHTML = 	    '<div id="vs-panel-t">'
@@ -79,154 +81,163 @@ $.fn.vsGrid = function(options) {
 				//Create per column styles
 				var _row = rows[i];
 				var _nth = i + 1;
-				style_s += '#' + id + ' thead th:nth-child(' + _nth + ')'
+				_style_s += '#' + id + ' thead th:nth-child(' + _nth + ')'
 					  +  ', #' + id + ' tbody td:nth-child(' + _nth + ')' 
 					  +  '{' + _row.style + ' min-width : ' + _row.width + 'px; width : ' + _row.width + 'px; }';
 			}
 			
 			// vsGrid size
-			style_s += '#' + id + ' { width : ' + width + 'px; height : ' + height + 'px; }';
+			_style_s += '#' + id + ' { width : ' + width + 'px; height : ' + height + 'px; }';
 
 			// panel-t and panel-b width
-			style_s += '#' + id + ' #vs-panel-t , #' + id + ' #vs-panel-b { height : 20px; }';
+			_style_s += '#' + id + ' #vs-panel-t , #' + id + ' #vs-panel-b { height : 20px; }';
 
 			// thead width
-			style_s += '#' + id + ' thead { width : ' + (width - 17) + 'px; }';
+			_style_s += '#' + id + ' thead { width : ' + (width - 17) + 'px; }';
 
 			// tbody size
-			style_s += '#' + id + ' tbody { width : ' + width + 'px; height : ' + ((height - $thead.height()) - 40) + 'px; }';
+			_style_s += '#' + id + ' tbody { width : ' + width + 'px; height : ' + ((height - $thead.height()) - 40) + 'px; }';
 			
 			// Append vsGrid custom styles
-			$style.append(style_s);
+			$style.append(_style_s);
 		};
 		
 		$.fn.vsGrid.createPageLimit = function(o) {
-			var curPage  = o.curPage;
-			var curLimit = o.curLimit;
-			var rowTo 	 = curPage * curLimit;
-			var rowFrom  = (rowTo - curLimit) + 1;
-			var pLimit_s = 'Showing ' + rowFrom + ' to ' + rowTo + ' of ' + dataLength + ' rows <select name="vs-pagelimit" id="vs-pagelimit">';
+			var _rowTo 	 = curPage * curLimit;
+			var _rowFrom  = (_rowTo - curLimit) + 1;
+			var _pLimit_s = 'Showing ' + _rowFrom + ' to ' + _rowTo + ' of ' + dataLength + ' rows <select name="vs-pagelimit" id="vs-pagelimit">';
 
 			for (let i = 0; i < pageLimit.length; i++) {
 				var _pl = Math.floor(pageLimit[i]);
-				pLimit_s += '<option value="' + _pl + '">' + _pl + '</option>';
+				_pLimit_s += '<option value="' + _pl + '">' + _pl + '</option>';
 			}
-			pLimit_s += '</select> rows per page.';
+			_pLimit_s += '</select> rows per page.';
 
-			$pageLimitBox.html(pLimit_s);
+			$pageLimitBox.html(_pLimit_s);
 			$pageLimit = $pageLimitBox.find("#vs-pagelimit");
 			
 			$pageLimit.off("change").on("change", function() {
-				// Create pagination
+				curLimit = parseInt(this.value);
 				pages = Math.floor(dataLength / this.value);
-				$.fn.vsGrid.createPagination({ pages : pages });
+
+				// Create pagination
+				$.fn.vsGrid.createPagination();
+
+				// Update tbody
 				$pagination.find(".vs-page:nth-child(2)").click();
 			}).val(curLimit);
-			$tbody.scrollTop(0);
+
+			// Reset the scroll
+			$tbody.scrollTop(0).scrollLeft(0);
+			$thead.scrollLeft(0);
 		}
 		
 		$.fn.vsGrid.createPagination = function(o,isLast) {
-			var pages 			= o.pages;
-			var pagination_s 	= '<li id="vs-page-first" class="vs-page except">First</li>';
+			var _pagination_s 	= '<li id="vs-page-first" class="vs-page except">First</li>';
 			
 			if (isLast) {
-				if (pages <= 5) {
+				if (pages <= 7) {
 					for (let i = 1; i <= pages - 1; i++) {
-						pagination_s += '<li class="vs-page">' + i + '</li>';
+						_pagination_s += '<li class="vs-page">' + i + '</li>';
 					}
-					pagination_s += '<li class="vs-page active">' + pages + '</li>';
+					_pagination_s += '<li class="vs-page active">' + pages + '</li>';
 				} else {
-					pagination_s += '<li class="vs-page">1</li><li id="vs-page-ellipsis" class="vs-page except">...</li><li class="vs-page">' + (pages - 2) + '</li><li class="vs-page">' + (pages - 1) + '</li><li class="vs-page active">' + pages + '</li>';
+					_pagination_s += '<li class="vs-page">1</li><li id="vs-page-ellipsis" class="vs-page except">...</li>';
+					for (let i = 4; i >= 1; i--) {
+						_pagination_s += '<li class="vs-page">' + (pages - i) + '</li>';
+					}
+					_pagination_s += '<li class="vs-page active">' + pages + '</li>';
 				}
 			} else {
-				if (pages <= 5) {
-					pagination_s += '<li class="vs-page active">1</li>';
+				if (pages <= 7) {
+					_pagination_s += '<li class="vs-page active">1</li>';
 					for (let i = 2; i <= pages; i++) {
-						pagination_s += '<li class="vs-page">' + i + '</li>';
+						_pagination_s += '<li class="vs-page">' + i + '</li>';
 					}
 				} else {
-					pagination_s += '<li class="vs-page active">1</li><li class="vs-page">2</li><li class="vs-page">3</li><li id="vs-page-ellipsis" class="vs-page except">...</li><li class="vs-page">' + pages + '</li>';
+					_pagination_s += '<li class="vs-page active">1</li><li class="vs-page">2</li><li class="vs-page">3</li><li class="vs-page">4</li><li class="vs-page">5</li><li id="vs-page-ellipsis" class="vs-page except">...</li><li class="vs-page">' + pages + '</li>';
 				}
 			}
 			
-			pagination_s += '<li id="vs-page-last" class="vs-page except">Last</li>';
+			_pagination_s += '<li id="vs-page-last" class="vs-page except">Last</li>';
 
-			$pagination.html(pagination_s);
+			$pagination.html(_pagination_s);
 
 			// On click event
 			$pagination.off("click", ".vs-page:not(#vs-page-ellipsis)")
 			.on("click", ".vs-page:not(#vs-page-ellipsis)", function() {
 				var _$self = $(this);
-				var _pageNo;
 				
 				$pagination.find(".active").removeClass("active");
 				if (_$self.hasClass("except")) {
 					var _id = _$self.attr("id");
 					
 					if (_id === "vs-page-first") {
-						$.fn.vsGrid.createPagination({ pages : pages });
-						_pageNo = 1;
+						curPage = 1;
 					} else if (_id === "vs-page-last") {
-						$.fn.vsGrid.createPagination({ pages : pages }, true);
-						_pageNo = pages;
+						curPage = pages;
 					}
 				} else {
-					_pageNo = _$self.addClass("active").text();
+					curPage = parseInt(_$self.addClass("active").text());
+				}
+
+				// Update pagination
+				if (curPage === 1) {
+					$.fn.vsGrid.createPagination();
+				} else if (curPage === pages) {
+					$.fn.vsGrid.createPagination({},true);
 				}
 				
 				// Update tbody display
-				$.fn.vsGrid.createTBody({
-					curLimit : $pageLimit.val()
-					,curPage : parseInt(_pageNo)
-				});
-				$.fn.vsGrid.createPageLimit({ curLimit : $pageLimit.val() , curPage : parseInt(_pageNo) });
+				$.fn.vsGrid.createTBody();
+
+				// Update page limit
+				$.fn.vsGrid.createPageLimit();
 			});
 		}
 		
 		$.fn.vsGrid.createTHead = function(o) {
-			var thead_s 	= '<tr>';
+			var _thead_s 	= '<tr>';
 			for (let i = 0; i < rowsLength; i++) {
 				var _row = rows[i];
-				thead_s 	+= 	'<th>' + _row.column + '</th>';
+				_thead_s 	+= 	'<th>' + _row.column + '</th>';
 			}
-			thead_s 	+=	'</tr>';
-			$thead.html(thead_s);
+			_thead_s 	+=	'</tr>';
+			$thead.html(_thead_s);
 		}
 		
 		$.fn.vsGrid.createTBody = function(o) {
-			var curLimit = o.curLimit;
-			var curPage = o.curPage;
-			var end = curLimit * curPage;
-			var start = end - curLimit;
-			var tbody_s = "";
+			var _end 		= curLimit * curPage;
+			var _start 		= _end - curLimit;
+			var _tbody_s 	= "";
 
 			if (curLimit === undefined && curPage === undefined) {
 				// NO limit and page
 				for (let i = 0; i < dataLength; i++) {
 					var _data = data[i];
 
-					tbody_s += '<tr>';
+					_tbody_s += '<tr>';
 					for (let ii = 0; ii < rowsLength; ii++) {
 						var _row = rows[ii];
-						tbody_s += '<td>' + _data[_row.column] + '</td>';
+						_tbody_s += '<td>' + _data[_row.column] + '</td>';
 					}
-					tbody_s += '</tr>';
+					_tbody_s += '</tr>';
 				}
 			} else {
 				// HAS limit and page
-				for (let i = start; i < end; i++) {
+				for (let i = _start; i < _end; i++) {
 					var _data = data[i];
 
-					tbody_s += '<tr>';
+					_tbody_s += '<tr>';
 					for (let ii = 0; ii < rowsLength; ii++) {
 						var _row = rows[ii];
-						tbody_s += '<td>' + _data[_row.column] + '</td>';
+						_tbody_s += '<td>' + _data[_row.column] + '</td>';
 					}
-					tbody_s += '</tr>';
+					_tbody_s += '</tr>';
 				}
 			}
 
-			$tbody.html(tbody_s).on("scroll", function(){
+			$tbody.html(_tbody_s).on("scroll", function(){
 				// Add scroll event
 				$thead.scrollLeft($(this).scrollLeft());
 			});
@@ -234,8 +245,8 @@ $.fn.vsGrid = function(options) {
 		
 		// Default initialization
 		$.fn.vsGrid.createTable();
-		$.fn.vsGrid.createPageLimit({ curLimit : Math.floor(pageLimit[0]) , curPage : 1 });
-		$.fn.vsGrid.createPagination({ pages : dataLength / Math.floor(pageLimit[0]) });
+		$.fn.vsGrid.createPageLimit();
+		$.fn.vsGrid.createPagination();
 		$.fn.vsGrid.createTHead();
 		$pagination.find(".vs-page:nth-child(2)").click();
 	
