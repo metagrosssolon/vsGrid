@@ -1,3 +1,2 @@
- - Make a separate function for pagination ang pagelimit.
  - Work with more than 5 pages module.
  - Add next and prev pages.
