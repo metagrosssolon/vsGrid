@@ -1,4 +1,2 @@
- - createTable() is only for table layout.
- - use other function to create in every features like tbody, thead, pagination, search.
-
- - e cache ang tanang object ug variables sa main.
+ - Create function that only change Showing x to xx of xxx rows.
+ - Create function that interacts to DOM objects as minimal as possible.

@@ -33,6 +33,7 @@ $.fn.vsGrid = function(options) {
 		var curPage 	= 1; 
 		var curLimit 	= Math.floor(pageLimit[0]);
 		var pages 		= dataLength / curLimit;
+		var paginationState = 1; 
 		
 		// Declared DOM object
 		var $style;
@@ -141,12 +142,14 @@ $.fn.vsGrid = function(options) {
 						_pagination_s += '<li class="vs-page">' + i + '</li>';
 					}
 					_pagination_s += '<li class="vs-page active">' + pages + '</li>';
+					paginationState = 3;
 				} else {
 					_pagination_s += '<li class="vs-page">1</li><li id="vs-page-ellipsis" class="vs-page except">...</li>';
-					for (let i = 4; i >= 1; i--) {
-						_pagination_s += '<li class="vs-page">' + (pages - i) + '</li>';
+					for (let i = 4; i >= 0; i--) {
+						var _page = pages - i;
+						_pagination_s += '<li class="vs-page ' + ((curPage === _page) ? "active" : "") + '">' + _page + '</li>';
 					}
-					_pagination_s += '<li class="vs-page active">' + pages + '</li>';
+					paginationState = 3;
 				}
 			} else {
 				if (pages <= 7) {
@@ -154,14 +157,29 @@ $.fn.vsGrid = function(options) {
 					for (let i = 2; i <= pages; i++) {
 						_pagination_s += '<li class="vs-page">' + i + '</li>';
 					}
+					paginationState = 1;
 				} else {
-					_pagination_s += '<li class="vs-page active">1</li><li class="vs-page">2</li><li class="vs-page">3</li><li class="vs-page">4</li><li class="vs-page">5</li><li id="vs-page-ellipsis" class="vs-page except">...</li><li class="vs-page">' + pages + '</li>';
+					if (curPage >= 5 && curPage <= pages - 4) {
+						_pagination_s += '<li class="vs-page">1</li><li id="vs-page-ellipsis" class="vs-page except">...</li>';
+						_pagination_s += '<li class="vs-page">' + (curPage - 1) + '</li>';	
+						_pagination_s += '<li class="vs-page active">' + (curPage) + '</li>';	
+						_pagination_s += '<li class="vs-page">' + (curPage + 1) + '</li>';	
+						_pagination_s += '<li id="vs-page-ellipsis" class="vs-page except">...</li><li class="vs-page">' + pages + '</li>';
+						paginationState = 2;
+					} else {
+						for (let i = 1; i <= 5; i++) {
+							_pagination_s += '<li class="vs-page ' + ((curPage === i) ? "active" : "") + '">' + i + '</li>';
+						}
+						_pagination_s += '<li id="vs-page-ellipsis" class="vs-page except">...</li><li class="vs-page">' + pages + '</li>';
+						paginationState = 1;
+					}
 				}
 			}
 			
 			_pagination_s += '<li id="vs-page-last" class="vs-page except">Last</li>';
 
 			$pagination.html(_pagination_s);
+			console.log("done", paginationState);
 
 			// On click event
 			$pagination.off("click", ".vs-page:not(#vs-page-ellipsis)")
@@ -183,9 +201,26 @@ $.fn.vsGrid = function(options) {
 
 				// Update pagination
 				if (curPage === 1) {
-					$.fn.vsGrid.createPagination();
+					if (paginationState !== 1) $.fn.vsGrid.createPagination();
 				} else if (curPage === pages) {
-					$.fn.vsGrid.createPagination({},true);
+					if (paginationState !== 3) $.fn.vsGrid.createPagination({},true);
+				} 
+
+				if (pages > 7) {
+					if (curPage === 4) {
+						if (paginationState !== 1) $.fn.vsGrid.createPagination();
+					}
+					if (curPage >= 5 && curPage <= pages - 4) {
+						if (paginationState !== 2) { $.fn.vsGrid.createPagination(); }
+						else {
+							$pagination.find(".vs-page").removeClass("active");
+							$pagination.find(".vs-page:nth-child(4)").text(curPage - 1);
+							$pagination.find(".vs-page:nth-child(5)").addClass("active").text(curPage);
+							$pagination.find(".vs-page:nth-child(6)").text(curPage + 1);
+						}
+					} else if (curPage === pages - 3) {
+						if (paginationState !== 3) $.fn.vsGrid.createPagination({},true);
+					}
 				}
 				
 				// Update tbody display
