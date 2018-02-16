@@ -1,6 +1,1 @@
- - Create search function.
-
-
-
-
- & review the pagination method and remove long strings in pagination.
+ - Create search function. hapit na human dili updated ang source

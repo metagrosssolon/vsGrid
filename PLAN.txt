@@ -1,2 +1,0 @@
- - Create function that only change Showing x to xx of xxx rows.
- - Create function that interacts to DOM objects as minimal as possible.
