@@ -1,316 +1,345 @@
-$.fn.vsGrid = function(options) {
-	var elemLength = this.length;
-	// Don't act on absent elements - via Paul Irish's advice
-	if ( elemLength ) {
-		// Default initialization
-		var defaults = {
-			data : {}
-			,rows : [{}]
-			,size : { width : 700 , height : 400 }
-			,pageLimit : [ 25 , 50 , 100 ]
-		};
-		
-		// Merge object2 into object1, recursively
-		var settings = $.extend( true , defaults, options );
-		
-		// Initialized DOM objects
-		var self 		= this[0];
-		var $self 		= $(self);
-		
-		// Initialized objects
-		var data 		= settings.data;
-		var rows 		= settings.rows;
-		var width 		= settings.width;
-		var height		= settings.height;
-		var pageLimit 	= settings.pageLimit;
-		
-		// Initialized fixed values
-		var id 			= $self.attr('id');
-		var rowsLength 	= rows.length;
-		var dataLength 	= data.length;
+<link  href="/amcharts/amcharts/plugins/export/export.css" rel="stylesheet" type="text/css" />
 
-		// Initialized dynamic values
-		var tmr			= 0;
-		var curPage 	= 1; 
-		var curLimit 	= Math.ceil(pageLimit[0]);
-		var pages 		= dataLength / curLimit;
-		var paginationState = 1; 
-		
-		// Declared DOM object
-		var $style;
-		var $thead;
-		var $tbody;
-		var $search;
-		var $pageLimitBox;
-		var $pageLimit;
-		var $pagination;
-		
-		// vsGrid Functions
-		$.fn.vsGrid.createTable = function(o) {
-			var _style_s = "";
-			
-			// Create vsGrid DOM structure
-			self.innerHTML = 	    '<div id="vs-panel-t">'
-								+       '<div class="vs-search-box">'
-								+           '<label for="vs-search">'
-								+               '<svg viewBox="0 0 24 24" height="100%" width="100%" preserveAspectRatio="xMidYMid meet">'
-								+                   '<g><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></g>'
-								+               '</svg>'
-								+           '</label>'
-								+           '<input id="vs-search" name="vs-search" type="text" placeholder="Search for" />'
-								+       '</div>'
-								+   '</div>'
-								+   '<table>'
-								+       '<thead></thead>'
-								+       '<tbody></tbody>'
-								+   '</table>'
-								+   '<div id="vs-panel-b">'
-								+       '<div class="vs-pagelimit-box"></div>'
-								+       '<div class="vs-pagination-box">'
-								+           '<ul id="vs-pagination" name="vs-pagination"></ul>'
-								+       '</div>'
-								+   '</div>';
-			
-			$thead 			= $self.find("thead");
-			$tbody 			= $self.find("tbody");
-			$search 		= $self.find("#vs-search");
-			$pageLimitBox   = $self.find(".vs-pagelimit-box");
-			$pagination		= $self.find("#vs-pagination");
-			
-			// Create #vsGrid-cus-style style tag
-			$style = $("#vsGrid-cus-style");
-			if ( ! $style.length) { $('head').append('<style id="vsGrid-cus-style"></style>'); $style = $("#vsGrid-cus-style"); }
+<script src="/amcharts/amcharts/amcharts.js"></script>
+<script src="/amcharts/amcharts/serial.js"></script>
+<script src="/amcharts/amcharts/pie.js"></script>
+<script src="/amcharts/amcharts/plugins/export/export.js" type="text/javascript"></script>
 
-			for (let i = 0; i < rowsLength; i++) {
-				//Create per column styles
-				var _row = rows[i];
-				var _nth = i + 1;
-				_style_s += '#' + id + ' thead th:nth-child(' + _nth + ')'
-					  +  ', #' + id + ' tbody td:nth-child(' + _nth + ')' 
-					  +  '{' + _row.style + ' min-width : ' + _row.width + 'px; width : ' + _row.width + 'px; }';
-			}
-			
-			// vsGrid size
-			_style_s += '#' + id + ' { width : ' + width + 'px; height : ' + height + 'px; }';
+<style>
+/* ----------- VINCENT -------------- */
+#localTemplates {
+    display: none;
+}
 
-			// panel-t and panel-b width
-			_style_s += '#' + id + ' #vs-panel-t , #' + id + ' #vs-panel-b { height : 20px; }';
+.no-padding {
+    padding : 0 !important;
+}
 
-			// thead width
-			_style_s += '#' + id + ' thead { width : ' + (width - 17) + 'px; }';
+.hidden {
+    display : none;
+}
 
-			// tbody size
-			_style_s += '#' + id + ' tbody { width : ' + width + 'px; height : ' + ((height - $thead.height()) - 40) + 'px; }';
-			
-			// Append vsGrid custom styles
-			$style.append(_style_s);
-		};
-		
-		$.fn.vsGrid.createPageLimit = function(o,isUpdate) {
-			var _rowTo 	 = curPage * curLimit;
+#wiretype_section
+,#wirecolor_section
+,#ts_section
+,#tp_section {
+    display : none;
+}
 
-			if (isUpdate) {
-				var _rowFrom  = (_rowTo - curLimit) + 1;
-				$pageLimitBox.find("span").text('Showing ' + _rowFrom + ' to ' + _rowTo + ' of ' + dataLength + ' rows');
-			} else {
-				var _pLimit_s = '<span>Showing 1 to ' + _rowTo + ' of ' + dataLength + ' rows</span><select name="vs-pagelimit" id="vs-pagelimit">';
+/* ----------- wire size & wire type -------------- */
 
-				for (let i = 0; i < pageLimit.length; i++) {
-					var _pl = Math.ceil(pageLimit[i]);
-					_pLimit_s += '<option value="' + _pl + '">' + _pl + '</option>';
-				}
-				_pLimit_s += '</select> rows per page.';
+#wsChartPanel, #wtChartPanel {
+    overflow: hidden;
+    height: 310px;
+}
 
-				$pageLimitBox.html(_pLimit_s);
-				$pageLimit = $pageLimitBox.find("#vs-pagelimit");
-				
-				$pageLimit.off("change").on("change", function() {
-					curLimit = parseInt(this.value);
-					pages = Math.ceil(dataLength / curLimit);
-					curPage = 1;
-					// Update page limit
-					$.fn.vsGrid.createPageLimit({},true);
-					// Update pagination
-					$.fn.vsGrid.createPagination();
-					// Update tbody
-					$.fn.vsGrid.createTBody();
-				}).val(curLimit);
-			}
+#wsPieChart, #wtPieChart {
+    height : 100%;
+}
 
-			// Reset the scroll
-			$tbody.scrollTop(0).scrollLeft(0);
-			$thead.scrollLeft(0);
-		}
-		
-		$.fn.vsGrid.createPagination = function(o,isLast) {
-			var _pagination_s 	= '<li id="vs-page-first" class="vs-page">First</li>';
+#wsRefTablePanel, #wtRefTablePanel {
+    overflow: hidden;
+    width: 100%;
+    height: 310px;
+}
 
-			if (isLast) {
-				if (pages <= 5) {
-					for (let i = 1; i <= pages - 1; i++) {
-						_pagination_s += '<li class="vs-page">' + i + '</li>';
-					}
-					_pagination_s += '<li class="vs-page active">' + pages + '</li>';
-				} else {
-					for (let i = pages - 4; i <= pages - 1; i++) {
-						_pagination_s += '<li class="vs-page">' + i + '</li>';
-					}
-					_pagination_s += '<li class="vs-page active">' + pages + '</li>';
-				}
-				paginationState = 3;
-			} else {
-				if (pages <= 5) { 
-					_pagination_s += '<li class="vs-page active">1</li>';
-					for (let i = 2; i <= pages; i++) {
-						_pagination_s += '<li class="vs-page">' + i + '</li>';
-					}
-				} else {
-					_pagination_s += '<li class="vs-page active">1</li><li class="vs-page">2</li><li class="vs-page">3</li><li class="vs-page">4</li><li class="vs-page">5</li>';
-				}
-				paginationState = 1;
-			}
-			
-			_pagination_s += '<li id="vs-page-last" class="vs-page">Last</li>';
+#wsRefTablePanel #totalRow div
+,#wtRefTablePanel #totalRow div {
+    text-align : center;
+    float : left;
+    width : 190px;
+    font-weight : 600;
+}
 
-			$pagination.html(_pagination_s);
+#wsTypeTable th
+,#wsTypeTable td
+,#wsHarnessTable th
+,#wsHarnessTable td {
+    min-width : 100px; 
+    width : 100px; 
+    text-align : center;
+    word-break: break-all;
+    word-wrap: break-word;
+}
 
-			// On click event
-			$pagination.off("click", ".vs-page")
-			.on("click", ".vs-page", function() {
-				var _$self = $(this);
-				var _id = _$self.attr("id");
-				
-				$pagination.find(".active").removeClass("active");
-				if (_id === "vs-page-first") {
-					curPage = 1;
-				} else if (_id === "vs-page-last") {
-					curPage = pages;
-				} else {
-					curPage = parseInt(_$self.text());
-				}
+/* ----------- wire color -------------- */
 
-				// Update pagination
-				if (curPage === 1) {
-					if (paginationState !== 1) $.fn.vsGrid.createPagination();
-				} else if (curPage === pages) {
-					if (paginationState !== 3) $.fn.vsGrid.createPagination({},true);
-				} else if (pages > 5) {
-					if (curPage >= 4 && curPage <= pages - 3) {
-						for (let i = 2,x = curPage - 2; i <= 6; i++,x++) {
-							if (curPage === x) $pagination.find(".vs-page:nth-child(" + i + ")").addClass("active").text(x);
-							else $pagination.find(".vs-page:nth-child(" + i + ")").text(x);
-						}
-					} else if (curPage >= pages - 2) {
-						for (let i = 2,x = pages - 4; i <= 6; i++,x++) {
-							if (curPage === x) $pagination.find(".vs-page:nth-child(" + i + ")").addClass("active").text(x);
-							else $pagination.find(".vs-page:nth-child(" + i + ")").text(x);
-						}
-					} else if (curPage <= 3) {
-						for (let i = 2,x = 1; i <= 6; i++,x++) {
-							if (curPage === x) $pagination.find(".vs-page:nth-child(" + i + ")").addClass("active").text(x);
-							else $pagination.find(".vs-page:nth-child(" + i + ")").text(x);
-						}
-					}
-					paginationState = 2;
-				} else { _$self.addClass("active"); }
-				
-				// Update tbody display
-				$.fn.vsGrid.createTBody();
+#wcGraph {
+    width: 80%;
+    float: right;
+}
 
-				// Update page limit
-				$.fn.vsGrid.createPageLimit({},true);
-			});
-		}
-		
-		$.fn.vsGrid.createTHead = function(o) {
-			var _thead_s 	= '<tr>';
-			for (let i = 0; i < rowsLength; i++) {
-				var _row = rows[i];
-				_thead_s 	+= 	'<th>' + _row.column + '</th>';
-			}
-			_thead_s 	+=	'</tr>';
-			$thead.html(_thead_s);
-		}
-		
-		$.fn.vsGrid.createTBody = function(o) {
-			var _end 		= (dataLength < curLimit) ? dataLength : curLimit * curPage;
-			var _start 		= (dataLength < curLimit) ? 0 : _end - curLimit;
-			var _tbody_s 	= "";
+#wcGraphXtraHeader {
+    margin-top: 25px;
+    float : left;
+    position: absolute;
+    top: 0;
+}
 
-			if (curLimit === undefined && curPage === undefined) {
-				// NO limit and page
-				for (let i = 0; i < dataLength; i++) {
-					var _data = data[i];
+#wcGraphXtraHeader
+,#wcGraphXtraHeader td {
+    border : none;
+    border-bottom : 1pt solid #d6d8d8;
+}
 
-					_tbody_s += '<tr>';
-					for (let ii = 0; ii < rowsLength; ii++) {
-						var _row = rows[ii];
-						_tbody_s += '<td>' + _data[_row.column] + '</td>';
-					}
-					_tbody_s += '</tr>';
-				}
-			} else {
-				console.log("_start",_start,"_end",_end,"dataLength",dataLength);
-				console.log("data2",data);
-				// HAS limit and page
-				for (let i = _start; i < _end; i++) {
-					var _data = data[i];
+#wcGraphXtraHeader td:not(.wiresize) {
+    min-width : 130px;
+    width : 130px;
+}
 
-					_tbody_s += '<tr>';
-					for (let ii = 0; ii < rowsLength; ii++) {
-						var _row = rows[ii];
-						_tbody_s += '<td>' + _data[_row.column] + '</td>';
-					}
-					_tbody_s += '</tr>';
-				}
-			}
+#wcTable th
+,#wcTable td {
+    min-width : 100px;
+    width : 100px;
+    text-align:center;
+    border-bottom: 1pt solid #d6d8d8;
+    word-break: break-all;
+    word-wrap: break-word;
+}
 
-			$tbody.html(_tbody_s).on("scroll", function(){
-				// Add scroll event
-				$thead.scrollLeft($(this).scrollLeft());
-			});
-		}
+/* --------------------- Twisting and shielding ------------------------- */
 
-		$.fn.vsGrid.search = function(o) {
-			$search.off("keyup").on("keyup", function() {
-				var _pattern = new RegExp(this.value, "i");
-				var _result = [];
-				data = settings.data;
-				dataLength = data.length;
-				
-				for (let i = 0; i < dataLength; i++) {
-					var _data = data[i];
+#tsRefTablePanel ,#tsGraphPanel {
+    overflow: hidden;
+    width: 100%;
+    height: 310px;
+}
 
-					for (let ii = 0; ii < rowsLength; ii++) {
-						var _row = rows[ii];
-						if (_pattern.test(_data[_row.column] + "")) {
-							_result.push(_data);
-							break;
-						}
-					}
-				}
-				
-				data = _result;
-				dataLength = data.length;
-				curPage = 1;
-				curLimit = $pageLimit.val();
-				pages = Math.ceil(dataLength / curLimit);
-				
-				$.fn.vsGrid.createPageLimit();
-				$.fn.vsGrid.createPagination();
-				$.fn.vsGrid.createTBody();
-			});
-		}
-		
-		// Default initialization
-		$.fn.vsGrid.createTable();
-		$.fn.vsGrid.createPageLimit();
-		$.fn.vsGrid.createPagination();
-		$.fn.vsGrid.createTHead();
-		$.fn.vsGrid.createTBody();
-		$.fn.vsGrid.search();	
-	
-		// To make chainable
-		return $self;
-	}
-};
+#tsRefTable th
+,#tsRefTable td {
+    min-width : 100px;
+    width : 100px;
+    text-align:center;
+    border-bottom: 1pt solid #d6d8d8;
+    word-break: break-all;
+    word-wrap: break-word;
+}
+
+/* -------------- .subMenu DropDown Recursive styles ------------- */ 
+
+.subMenu {
+    padding: 5px;
+    overflow: auto;
+}
+
+ul.zdd-panel div.zdd-head span.zdd-icon {
+    float: right;
+}
+
+ul.zdd-panel li.zdd-item {
+    border: 1pt solid #dedede;
+    background: #f5f5f5;
+    background: linear-gradient(to bottom,#f5f5f5 0,#e8e8e8 100%);
+    color: #333333;
+    padding: 5px 7px;
+    cursor : pointer;
+}
+
+ul.zdd-panel li.zdd-item:hover {
+    background: linear-gradient(to bottom,#f5f5f5 0,#a2a2a2 100%);
+}
+
+ul.zdd-panel div.zdd-body ul.zdd-panel div.zdd-body {
+    padding: 5px;
+    background: white;
+    border-left: 1pt solid #dedede;
+    border-right: 1pt solid #dedede;
+    border-bottom: 1pt solid #dedede;
+}
+
+ul.zdd-panel div.zdd-body #cb {
+    width: 25px;
+    margin: 2px 0;
+    float: left;
+}
+
+ul.zdd-panel li.zdd-item.active {
+    background: linear-gradient(to bottom,#f5f5f5 0,#a2a2a2 100%);
+    font-weight: 600;
+}
+
+/* -------------- END .subMenu DropDown Recursive styles ------------- */ 
+
+/* -------------------- Circuit List Content Popup -------------------- */
+
+#refTable2 {
+    margin : 0 auto;
+}
+
+#btnPrintRefTable2 {
+    float : right;
+}
+
+/* -------------------- end Circuit List Content Popup -------------------- */
+
+
+table thead th {
+    height: 100%;
+    right: 0px;
+    position: absolute;
+    cursor: w-resize;
+    top: 0px;
+    width: 2px;
+}
+
+</style>
+
+<div id="leftPane" class="col-xs-2 zPanel"></div>
+ 
+<div id="rightPane" class="col-xs-10">
+    <div id="wiresize_section" class="section">
+        <div class="col-xs-7">
+            <div id="wsChartPanel" class="zPanel">
+                <div id="wsPieChart"></div>
+            </div>
+        </div>
+        <div class="col-xs-5">
+            <div id="wsRefTablePanel" class="zPanel">
+                <div id="wsRefTable" class="zGrid"></div>
+            </div>
+        </div>
+        <div class="col-xs-12">
+            <div id="wsElecTablePanel" class="zPanel">
+                <div id="wsElecTable" class="zGrid"></div>
+            </div>
+        </div>
+    </div>
+    <div id="wiretype_section" class="section">
+        <div class="col-xs-7">
+            <div id="wtChartPanel" class="zPanel">
+                <div id="wtPieChart"></div>
+            </div>
+        </div>
+        <div class="col-xs-5">
+            <div id="wtRefTablePanel" class="zPanel">
+                <div id="wtRefTable" class="zGrid"></div>
+            </div>
+        </div>
+        <div class="col-xs-12">
+            <div id="wtElecTablePanel" class="zPanel">
+                <div id="wtElecTable" class="zGrid"></div>
+            </div>
+        </div>
+    </div>
+    <div id="wirecolor_section" class="section">
+        <div class="col-xs-6">
+            <div id="wcGrapPanel" class="zPanel">
+                <table id="wcGraphXtraHeader"> 
+                    <tbody></tbody>
+                </table>
+                <div id="wcGraph"></div>
+            </div>
+        </div>
+        <div class="col-xs-6">
+            <div id="wcTablePanel" class="zPanel">
+                <table id="wcTable" class="zGrid">
+                    <thead>
+                        <tr>
+                            <th>Wire Size<div class="cr"></div></th>
+                            <th>Wire Type<div class="cr"></div></th>
+                            <th>Wire Color<div class="cr"></div></th>
+                            <th>Twisting and Shielding<div class="cr"></div></th>
+                            <th>Terminal Plating<div class="cr"></div></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-xs-12">
+            <div id="wcElecTable" class="zGrid"></div>
+        </div>
+    </div>
+    <div id="ts_section" class="section">
+        <div class="col-xs-7">
+            <div id="tsGraphPanel" class="zPanel">
+                <div id="tsGraph"></div>
+            </div>
+        </div>
+        <div class="col-xs-5">
+            <div id="tsRefTablePanel" class="zPanel">
+                <table id="tsRefTable" class="zGrid">
+                    <thead>
+                        <tr>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-xs-12">
+            <div class="col-xs-3">
+                <div id="tsElecTablePanel1" class="zPanel">
+                    <div id="tsElecTable1" class="zGrid"></div>
+                </div>
+            </div>
+            <div class="col-xs-9">
+                <div id="tsElecTablePanel2" class="zPanel">
+                    <div id="tsElecTable2" class="zGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="tp_section" class="section">Terminal Plating</div>
+</div>
+
+<ul id="localTemplates">
+    <li name="createSubMenu">
+        <ul class="zdd-panel">
+            <div class="zdd-body">
+                <ul class="zdd-panel">
+                    <div class="zdd-head"><li class="zdd-item active">Wire Size<span class="glyphicon glyphicon-triangle-bottom zdd-icon"></span></li></div>
+                    <div class="zdd-body" style="display: none;"></div>
+                </ul>
+                <ul class="zdd-panel">
+                    <div class="zdd-head"><li class="zdd-item">Wire Type<span class="glyphicon glyphicon-triangle-bottom zdd-icon"></span></li></div>
+                    <div class="zdd-body" style="display: none;"></div>
+                </ul>
+                <ul class="zdd-panel">
+                    <div class="zdd-head"><li class="zdd-item">Wire Color<span class="glyphicon glyphicon-triangle-bottom zdd-icon hidden"></span></li></div>
+                </ul>
+                <ul class="zdd-panel">
+                    <div class="zdd-head"><li class="zdd-item">Twisting and Shielding<span class="glyphicon glyphicon-triangle-bottom zdd-icon"></span></li></div>
+                    <div class="zdd-body" style="display: none;"></div>
+                </ul>
+                <ul class="zdd-panel">
+                    <div class="zdd-head"><li class="zdd-item">Terminal Plating<span class="glyphicon glyphicon-triangle-bottom zdd-icon"></span></li></div>
+                    <div class="zdd-body" style="display: none;"></div>
+                </ul>
+            </div>
+        </ul>
+    </li>
+    <li name="circuitListContent">
+        <div id="refTable2" class="zGrid"></div>
+        <div id="wsTypePanel" class="col-xs-6">
+            <table id="wsTypeTable" class="zGrid">
+                <thead>
+                    <tr>
+                        <th>Wire Size</th>
+                        <th>Wire Type</th>
+                        <th>Quantity</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div id="wsHarnessPanel" class="col-xs-6">
+            <table id="wsHarnessTable" class="zGrid">
+                <thead>
+                    <tr>
+                        <th>Wire Size</th>
+                        <th>Harness</th>
+                        <th>Quantity</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="col-xs-12" style="padding:5px;">
+            <button id="btnPrintRefTable2" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-print"></span></button>
+        </div>
+    </li>
+</ul>
