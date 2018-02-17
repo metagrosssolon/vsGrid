@@ -32,7 +32,7 @@ $.fn.vsGrid = function(options) {
 		// Initialized dynamic values
 		var tmr			= 0;
 		var curPage 	= 1; 
-		var curLimit 	= Math.floor(pageLimit[0]);
+		var curLimit 	= Math.ceil(pageLimit[0]);
 		var pages 		= dataLength / curLimit;
 		var paginationState = 1; 
 		
@@ -116,7 +116,7 @@ $.fn.vsGrid = function(options) {
 				var _pLimit_s = '<span>Showing 1 to ' + _rowTo + ' of ' + dataLength + ' rows</span><select name="vs-pagelimit" id="vs-pagelimit">';
 
 				for (let i = 0; i < pageLimit.length; i++) {
-					var _pl = Math.floor(pageLimit[i]);
+					var _pl = Math.ceil(pageLimit[i]);
 					_pLimit_s += '<option value="' + _pl + '">' + _pl + '</option>';
 				}
 				_pLimit_s += '</select> rows per page.';
@@ -126,14 +126,14 @@ $.fn.vsGrid = function(options) {
 				
 				$pageLimit.off("change").on("change", function() {
 					curLimit = parseInt(this.value);
-					pages = Math.floor(dataLength / curLimit);
+					pages = Math.ceil(dataLength / curLimit);
 					curPage = 1;
 					// Update page limit
 					$.fn.vsGrid.createPageLimit({},true);
 					// Update pagination
 					$.fn.vsGrid.createPagination();
 					// Update tbody
-					$.fn.vsGrid.createTBody({data : data});
+					$.fn.vsGrid.createTBody();
 				}).val(curLimit);
 			}
 
@@ -215,7 +215,7 @@ $.fn.vsGrid = function(options) {
 				} else { _$self.addClass("active"); }
 				
 				// Update tbody display
-				$.fn.vsGrid.createTBody({data : data});
+				$.fn.vsGrid.createTBody();
 
 				// Update page limit
 				$.fn.vsGrid.createPageLimit({},true);
@@ -233,18 +233,14 @@ $.fn.vsGrid = function(options) {
 		}
 		
 		$.fn.vsGrid.createTBody = function(o) {
-			var _source		= o.data;
-			var _length		= _source.length;
-			var _end 		= curLimit * curPage;
-			var _start 		= _end - curLimit;
+			var _end 		= (dataLength < curLimit) ? dataLength : curLimit * curPage;
+			var _start 		= (dataLength < curLimit) ? 0 : _end - curLimit;
 			var _tbody_s 	= "";
-
-			console.log("_source",_source,"_length",_length);
 
 			if (curLimit === undefined && curPage === undefined) {
 				// NO limit and page
-				for (let i = 0; i < _length; i++) {
-					var _data = _source[i];
+				for (let i = 0; i < dataLength; i++) {
+					var _data = data[i];
 
 					_tbody_s += '<tr>';
 					for (let ii = 0; ii < rowsLength; ii++) {
@@ -254,9 +250,11 @@ $.fn.vsGrid = function(options) {
 					_tbody_s += '</tr>';
 				}
 			} else {
+				console.log("_start",_start,"_end",_end,"dataLength",dataLength);
+				console.log("data2",data);
 				// HAS limit and page
 				for (let i = _start; i < _end; i++) {
-					var _data = _source[i];
+					var _data = data[i];
 
 					_tbody_s += '<tr>';
 					for (let ii = 0; ii < rowsLength; ii++) {
@@ -275,26 +273,32 @@ $.fn.vsGrid = function(options) {
 
 		$.fn.vsGrid.search = function(o) {
 			$search.off("keyup").on("keyup", function() {
-				clearTimeout(tmr);
-				tmr = setTimeout(function() {
-					var _pattern = new RegExp(this.value, "i");
-					var _result = [];
+				var _pattern = new RegExp(this.value, "i");
+				var _result = [];
+				data = settings.data;
+				dataLength = data.length;
+				
+				for (let i = 0; i < dataLength; i++) {
+					var _data = data[i];
 
-					for (let i = 0; i < dataLength; i++) {
-						var _data = data[i];
-
-						for (let ii = 0; ii < rowsLength; ii++) {
-							var _row = rows[ii];
-							if (_pattern.test(_data[_row.column] + "")) {
-								_result.push(_data);
-								break;
-							}
+					for (let ii = 0; ii < rowsLength; ii++) {
+						var _row = rows[ii];
+						if (_pattern.test(_data[_row.column] + "")) {
+							_result.push(_data);
+							break;
 						}
 					}
-					$.fn.vsGrid.createPageLimit();
-					$.fn.vsGrid.createPagination();
-					$.fn.vsGrid.createTBody({data : _result});
-				}, 500);
+				}
+				
+				data = _result;
+				dataLength = data.length;
+				curPage = 1;
+				curLimit = $pageLimit.val();
+				pages = Math.ceil(dataLength / curLimit);
+				
+				$.fn.vsGrid.createPageLimit();
+				$.fn.vsGrid.createPagination();
+				$.fn.vsGrid.createTBody();
 			});
 		}
 		
@@ -303,7 +307,7 @@ $.fn.vsGrid = function(options) {
 		$.fn.vsGrid.createPageLimit();
 		$.fn.vsGrid.createPagination();
 		$.fn.vsGrid.createTHead();
-		$.fn.vsGrid.createTBody({data : data});
+		$.fn.vsGrid.createTBody();
 		$.fn.vsGrid.search();	
 	
 		// To make chainable
